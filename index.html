@@ -1,0 +1,1457 @@
+﻿<title>Xadrez Geográfico - Terreno Elevado & Água</title>
+   <script src="https://cdn.tailwindcss.com"></script>
+   <script src="multiplayer.js"></script>
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+   <style>
+       .chess-square {
+           width: 70px;
+           height: 70px;
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           position: relative;
+           transition: all 0.3s ease;
+       }
+      
+       .chess-piece {
+           font-size: 50px;
+           cursor: pointer;
+           z-index: 2;
+           transition: transform 0.2s;
+       }
+      
+       .chess-piece:hover {
+           transform: scale(1.1);
+       }
+      
+       .highlight {
+           box-shadow: inset 0 0 10px 5px rgba(255, 255, 0, 0.7);
+       }
+      
+       .possible-move {
+           position: absolute;
+           width: 20px;
+           height: 20px;
+           background-color: rgba(0, 255, 0, 0.5);
+           border-radius: 50%;
+           z-index: 1;
+       }
+      
+       /* Temas de terreno */
+       .high-ground-classic {
+           background-image: linear-gradient(135deg, #8B4513 25%, #A0522D 25%, #A0522D 50%, #8B4513 50%, #8B4513 75%, #A0522D 75%, #A0522D 100%);
+           background-size: 20px 20px;
+           box-shadow: inset 0 0 5px 2px rgba(0,0,0,0.5);
+       }
+      
+       .high-ground-fantasy {
+           background-image: linear-gradient(135deg, #6B8E23 25%, #556B2F 25%, #556B2F 50%, #6B8E23 50%, #6B8E23 75%, #556B2F 75%, #556B2F 100%);
+           background-size: 20px 20px;
+           box-shadow: inset 0 0 5px 2px rgba(0,0,0,0.3);
+       }
+      
+       .water-classic {
+           background-image: linear-gradient(135deg, #1E90FF 25%, #00BFFF 25%, #00BFFF 50%, #1E90FF 50%, #1E90FF 75%, #00BFFF 75%, #00BFFF 100%);
+           background-size: 20px 20px;
+           box-shadow: inset 0 0 5px 2px rgba(0,0,0,0.3);
+       }
+      
+       .water-fantasy {
+           background-image: linear-gradient(135deg, #9370DB 25%, #8A2BE2 25%, #8A2BE2 50%, #9370DB 50%, #9370DB 75%, #8A2BE2 75%, #8A2BE2 100%);
+           background-size: 20px 20px;
+           box-shadow: inset 0 0 5px 2px rgba(0,0,0,0.3);
+       }
+      
+       .terrain-icon {
+           position: absolute;
+           bottom: 5px;
+           right: 5px;
+           font-size: 12px;
+           z-index: 1;
+       }
+      
+       .piece-info {
+           position: absolute;
+           top: 5px;
+           left: 5px;
+           font-size: 10px;
+           font-weight: bold;
+           z-index: 1;
+       }
+      
+       .attack-arrow {
+           position: absolute;
+           width: 100%;
+           height: 100%;
+           top: 0;
+           left: 0;
+           z-index: 3;
+           pointer-events: none;
+       }
+      
+       .attack-arrow::after {
+           content: '→';
+           position: absolute;
+           font-size: 30px;
+           color: rgba(255, 0, 0, 0.7);
+           animation: arrowPulse 1s infinite;
+       }
+      
+       @keyframes arrowPulse {
+           0% { opacity: 0.5; }
+           50% { opacity: 1; }
+           100% { opacity: 0.5; }
+       }
+      
+       .modal {
+           display: none;
+           position: fixed;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           background-color: rgba(0,0,0,0.7);
+           z-index: 10;
+           justify-content: center;
+           align-items: center;
+       }
+      
+       .modal-content {
+           background-color: white;
+           padding: 20px;
+           border-radius: 10px;
+           max-width: 500px;
+           text-align: center;
+       }
+      
+       .terrain-controls {
+           display: flex;
+           gap: 10px;
+           margin-bottom: 20px;
+           justify-content: center;
+           flex-wrap: wrap;
+       }
+      
+       .terrain-btn {
+           padding: 8px 15px;
+           border-radius: 5px;
+           cursor: pointer;
+           font-weight: bold;
+           transition: all 0.2s;
+       }
+      
+       .terrain-btn:hover {
+           transform: translateY(-2px);
+           box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+       }
+      
+       .stats-display {
+           position: absolute;
+           top: 10px;
+           right: 10px;
+           background-color: rgba(255, 255, 255, 0.8);
+           padding: 10px;
+           border-radius: 5px;
+           z-index: 5;
+           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+       }
+      
+       .ad-container {
+           background-color: #f0f0f0;
+           border: 1px dashed #ccc;
+           padding: 10px;
+           margin: 10px 0;
+           text-align: center;
+           border-radius: 5px;
+       }
+      
+       .theme-selector {
+           position: fixed;
+           bottom: 20px;
+           right: 20px;
+           background-color: white;
+           padding: 10px;
+           border-radius: 10px;
+           box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+           z-index: 100;
+       }
+      
+       .theme-option {
+           width: 30px;
+           height: 30px;
+           border-radius: 50%;
+           margin: 5px;
+           cursor: pointer;
+           border: 2px solid transparent;
+           transition: all 0.2s;
+       }
+      
+       .theme-option:hover {
+           transform: scale(1.1);
+       }
+      
+       .theme-option.active {
+           border-color: #333;
+       }
+      
+       /* Temas do site */
+       .theme-classic {
+           --bg-color: #f5f5f5;
+           --text-color: #333;
+           --primary-color: #4a6fa5;
+           --secondary-color: #6b8e23;
+           --accent-color: #8b4513;
+       }
+      
+       .theme-dark {
+           --bg-color: #121212;
+           --text-color: #e0e0e0;
+           --primary-color: #689f38;
+           --secondary-color: #7c4dff;
+           --accent-color: #ff4081;
+           --surface-color: #1e1e1e;
+           --border-color: #333333;
+       }
+      
+       .theme-fantasy {
+           --bg-color: #f0e6ff;
+           --text-color: #4b0082;
+           --primary-color: #9370db;
+           --secondary-color: #8a2be2;
+           --accent-color: #6b8e23;
+       }
+      
+       body {
+           background-color: var(--bg-color);
+           color: var(--text-color);
+           transition: all 0.3s ease;
+       }
+      
+       .btn-primary {
+           background-color: var(--primary-color);
+           color: white;
+       }
+      
+       .btn-secondary {
+           background-color: var(--secondary-color);
+           color: white;
+       }
+      
+       .btn-accent {
+           background-color: var(--accent-color);
+           color: white;
+       }
+      
+       .header {
+           background-color: var(--primary-color);
+           color: white;
+       }
+      
+       .rules-container {
+           background-color: rgba(255,255,255,0.8);
+           border: 1px solid var(--primary-color);
+       }
+   </style>
+</head>
+<body class="theme-classic min-h-screen flex flex-col">
+   <!-- Cabeçalho com anúncio -->
+   <header class="header py-4 shadow-lg">
+       <div class="container mx-auto px-4">
+           <div class="ad-container mb-4">
+               <p class="text-sm">Espaço para anúncio</p>
+               <div class="flex justify-center items-center h-20 bg-gray-200 rounded">
+                   <p class="text-gray-500">Anúncio Patrocinado</p>
+               </div>
+           </div>
+          
+           <div class="text-center">
+               <h1 class="text-4xl font-bold mb-2">Xadrez Geográfico</h1>
+               <p class="text-xl">Terreno Elevado & Água - Batalhas Táticas</p>
+           </div>
+       </div>
+   </header>
+  
+   <!-- Conteúdo principal -->
+   <main class="flex-grow container mx-auto px-4 py-8">
+       <div class="flex flex-col lg:flex-row gap-8">
+           <!-- Painel esquerdo -->
+           <div class="w-full lg:w-1/4">
+               <div class="bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-6">
+                   <h2 class="text-xl font-bold mb-4 text-center">Controles</h2>
+                  
+                   <div class="multiplayer-controls mb-4">
+                       <h3 class="text-lg font-bold mb-2">Modo Multiplayer</h3>
+                       <div class="flex flex-col gap-2">
+                           <input type="text" id="room-code" placeholder="Código da Sala" class="p-2 border rounded">
+                           <button id="create-room" class="terrain-btn bg-green-600 text-white">
+                               <i class="fas fa-plus mr-2"></i>Criar Sala
+                           </button>
+                           <button id="join-room" class="terrain-btn bg-blue-600 text-white">
+                               <i class="fas fa-sign-in-alt mr-2"></i>Entrar na Sala
+                           </button>
+                       </div>
+                   </div>
+                   <div class="terrain-controls">
+                       <button id="high-ground-btn" class="terrain-btn btn-accent">
+                           <i class="fas fa-mountain mr-2"></i>T.E.
+                       </button>
+                       <button id="water-btn" class="terrain-btn btn-primary">
+                           <i class="fas fa-water mr-2"></i>Água
+                       </button>
+                       <button id="normal-btn" class="terrain-btn bg-gray-300 text-gray-800">
+                           <i class="fas fa-times mr-2"></i>Normal
+                       </button>
+                       <button id="random-terrain-btn" class="terrain-btn btn-secondary">
+                           <i class="fas fa-random mr-2"></i>Aleatório
+                       </button>
+                       <button id="reset-btn" class="terrain-btn bg-red-500 text-white">
+                           <i class="fas fa-redo mr-2"></i>Resetar Jogo
+                       </button>
+                       <button id="ai-btn" class="terrain-btn bg-purple-600 text-white mt-2 w-full">
+                           <i class="fas fa-robot mr-2"></i>Jogar contra IA
+                       </button>
+                   </div>
+                  
+                   <div class="ad-container mt-4">
+                       <p class="text-sm">Patrocinador</p>
+                       <div class="flex justify-center items-center h-32 bg-gray-200 rounded">
+                           <p class="text-gray-500">Anúncio</p>
+                       </div>
+                   </div>
+               </div>
+              
+               <div class="bg-white bg-opacity-90 rounded-lg shadow-md p-4 rules-container">
+                   <h2 class="text-xl font-bold mb-2">Regras do Jogo</h2>
+                   <ul class="text-sm space-y-2">
+                       <li class="flex items-start">
+                           <i class="fas fa-mountain text-amber-800 mr-2 mt-1"></i>
+                           <span><strong>Terreno Elevado:</strong> +1 alcance de ataque e +1 defesa</span>
+                       </li>
+                       <li class="flex items-start">
+                           <i class="fas fa-water text-blue-500 mr-2 mt-1"></i>
+                           <span><strong>Água:</strong> Só peões, cavalos e reis podem atravessar</span>
+                       </li>
+                       <li class="flex items-start">
+                           <i class="fas fa-arrow-up text-green-600 mr-2 mt-1"></i>
+                           <span><strong>Ataque Elevado:</strong> Peças de longo alcance podem atacar sobre água</span>
+                       </li>
+                       <li class="flex items-start">
+                           <i class="fas fa-chess-queen text-purple-600 mr-2 mt-1"></i>
+                           <span><strong>Promoção:</strong> Peões viram rainha, torre, bispo ou cavalo</span>
+                       </li>
+                   </ul>
+               </div>
+           </div>
+          
+           <!-- Tabuleiro de xadrez -->
+           <div class="w-full lg:w-2/4 flex justify-center">
+               <div class="relative">
+
+                  
+                   <div class="chess-board relative bg-white p-4 shadow-xl rounded-lg" style="display: grid; grid-template-columns: repeat(8, 70px); grid-template-rows: repeat(8, 70px); width: 600px; height: 600px;">
+                       <!-- Tabuleiro será gerado aqui -->
+                   </div>
+                  
+                   <div class="ad-container mt-4">
+                       <p class="text-sm">Anúncio</p>
+                       <div class="flex justify-center items-center h-20 bg-gray-200 rounded">
+                           <p class="text-gray-500">Patrocinador</p>
+                       </div>
+                   </div>
+               </div>
+           </div>
+          
+           <!-- Painel direito -->
+           <div class="w-full lg:w-1/4">
+               <div class="bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4">
+                   <div class="text-center mb-2">
+                       <span id="current-player" class="font-bold">Turno: Branco</span>
+                   </div>
+                   <div class="flex items-center mb-2">
+                       <div class="w-4 h-4 bg-black rounded-full mr-2"></div>
+                       <span id="black-stats">Preto: 16 peças</span>
+                   </div>
+                   <div class="flex items-center mb-4">
+                       <div class="w-4 h-4 bg-white rounded-full mr-2 border border-gray-400"></div>
+                       <span id="white-stats">Branco: 16 peças</span>
+                   </div>
+               </div>
+               
+               <div class="bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-6">
+                   <h2 class="text-xl font-bold mb-4 text-center">Histórico</h2>
+                   <div id="move-history" class="text-sm h-64 overflow-y-auto border rounded p-2">
+                       <!-- Histórico de jogadas será exibido aqui -->
+                   </div>
+               </div>
+              
+               <div class="bg-white bg-opacity-90 rounded-lg shadow-md p-4">
+                   <h2 class="text-xl font-bold mb-2">Dicas</h2>
+                   <div id="game-tips" class="text-sm space-y-2">
+                       <div class="p-2 bg-blue-50 rounded">
+                           <p>Controle o Terreno Elevado para vantagem estratégica!</p>
+                       </div>
+                       <div class="p-2 bg-green-50 rounded">
+                           <p>Use a água para proteger seu rei de ataques diretos.</p>
+                       </div>
+                   </div>
+               </div>
+           </div>
+       </div>
+   </main>
+  
+   <!-- Rodapé -->
+   <footer class="bg-gray-800 text-white py-4">
+       <div class="container mx-auto px-4 text-center">
+           <p>Xadrez Estratégico &copy; 2023 - Todos os direitos reservados</p>
+           <div class="ad-container mt-2 mx-auto max-w-md">
+               <p class="text-sm text-white">Patrocinador</p>
+               <div class="flex justify-center items-center h-16 bg-gray-700 rounded">
+                   <p class="text-gray-300">Anúncio</p>
+               </div>
+           </div>
+       </div>
+   </footer>
+  
+   <!-- Modais -->
+   <div id="promotion-modal" class="modal">
+       <div class="modal-content">
+           <h3 class="text-xl font-bold mb-4">Promover Peão</h3>
+           <div class="flex justify-center gap-4">
+               <div class="promotion-option cursor-pointer" data-piece="queen">
+                   <i class="fas fa-chess-queen text-4xl"></i>
+                   <p>Rainha</p>
+               </div>
+               <div class="promotion-option cursor-pointer" data-piece="rook">
+                   <i class="fas fa-chess-rook text-4xl"></i>
+                   <p>Torre</p>
+               </div>
+               <div class="promotion-option cursor-pointer" data-piece="bishop">
+                   <i class="fas fa-chess-bishop text-4xl"></i>
+                   <p>Bispo</p>
+               </div>
+               <div class="promotion-option cursor-pointer" data-piece="knight">
+                   <i class="fas fa-chess-knight text-4xl"></i>
+                   <p>Cavalo</p>
+               </div>
+           </div>
+       </div>
+   </div>
+  
+   <div id="game-over-modal" class="modal">
+       <div class="modal-content">
+           <h3 class="text-xl font-bold mb-4" id="game-over-title">Fim de Jogo</h3>
+           <p id="game-over-message"></p>
+           <button id="new-game-btn" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+               Novo Jogo
+           </button>
+       </div>
+   </div>
+  
+   <!-- Seletor de temas -->
+   <div class="theme-selector">
+       <h3 class="text-sm font-bold mb-2">Temas</h3>
+       <div class="flex justify-center">
+           <div class="theme-option bg-gray-200 active" data-theme="classic" title="Clássico"></div>
+           <div class="theme-option bg-gray-800" data-theme="dark" title="Escuro"></div>
+           <div class="theme-option bg-purple-200" data-theme="fantasy" title="Fantasia"></div>
+       </div>
+   </div>
+
+
+   <script>
+       document.addEventListener('DOMContentLoaded', function() {
+           // Estado do jogo
+           const gameState = {
+               board: Array(8).fill().map(() => Array(8).fill(null)),
+               terrain: Array(8).fill().map(() => Array(8).fill('normal')),
+               selectedPiece: null,
+               currentPlayer: 'white',
+               gameOver: false,
+               terrainMode: null,
+               whitePieces: 16,
+               blackPieces: 16,
+               currentTheme: 'classic',
+               moveHistory: [],
+               aiMode: false,
+               aiColor: 'black',
+               aiThinking: false
+           };
+          
+           // Inicializar o tabuleiro
+           const chessBoard = document.querySelector('.chess-board');
+           const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+          
+           // Criar o tabuleiro
+           for (let rank = 8; rank >= 1; rank--) {
+               for (let file = 0; file < 8; file++) {
+                   const square = document.createElement('div');
+                   square.className = `chess-square ${(rank + file) % 2 === 0 ? 'bg-gray-200' : 'bg-gray-400'}`;
+                   square.dataset.rank = rank;
+                   square.dataset.file = files[file];
+                   square.dataset.row = 8 - rank;
+                   square.dataset.col = file;
+                  
+                   // Adicionar ícone de terreno
+                   const terrainIcon = document.createElement('div');
+                   terrainIcon.className = 'terrain-icon';
+                   square.appendChild(terrainIcon);
+                  
+                   // Adicionar informações da peça
+                   const pieceInfo = document.createElement('div');
+                   pieceInfo.className = 'piece-info';
+                   square.appendChild(pieceInfo);
+                  
+                   chessBoard.appendChild(square);
+               }
+           }
+          
+           // Configurar eventos dos botões de terreno
+           document.getElementById('high-ground-btn').addEventListener('click', () => {
+               gameState.terrainMode = 'high-ground';
+               showToast('Modo Terreno Elevado ativado. Clique nos quadrados para adicionar.');
+           });
+          
+           document.getElementById('water-btn').addEventListener('click', () => {
+               gameState.terrainMode = 'water';
+               showToast('Modo Água ativado. Clique nos quadrados para adicionar.');
+           });
+          
+           document.getElementById('normal-btn').addEventListener('click', () => {
+               gameState.terrainMode = null;
+               showToast('Modo terreno normal ativado.');
+           });
+          
+           document.getElementById('random-terrain-btn').addEventListener('click', generateRandomTerrain);
+          
+           // Configurar eventos dos quadrados
+           document.querySelectorAll('.chess-square').forEach(square => {
+               square.addEventListener('click', () => handleSquareClick(square));
+           });
+          
+           // Configurar opções de promoção
+           document.querySelectorAll('.promotion-option').forEach(option => {
+               option.addEventListener('click', handlePromotionChoice);
+           });
+          
+           // Botão de novo jogo
+           document.getElementById('new-game-btn').addEventListener('click', resetGame);
+           
+           // Botão de reset
+           document.getElementById('reset-btn').addEventListener('click', resetGame);
+           
+           // Botão de IA
+           document.getElementById('ai-btn').addEventListener('click', toggleAIMode);
+          
+           // Seletor de temas
+           document.querySelectorAll('.theme-option').forEach(option => {
+               option.addEventListener('click', function() {
+                   const theme = this.dataset.theme;
+                   changeTheme(theme);
+                  
+                   // Atualizar classe ativa
+                   document.querySelectorAll('.theme-option').forEach(opt => {
+                       opt.classList.remove('active');
+                   });
+                   this.classList.add('active');
+               });
+           });
+          
+           // Inicializar o jogo
+           initializeGame();
+          
+           function initializeGame() {
+               // Limpar o tabuleiro
+               gameState.board = Array(8).fill().map(() => Array(8).fill(null));
+               gameState.terrain = Array(8).fill().map(() => Array(8).fill('normal'));
+               gameState.currentPlayer = 'white';
+               gameState.gameOver = false;
+               gameState.whitePieces = 16;
+               gameState.blackPieces = 16;
+               gameState.moveHistory = [];
+
+               // Configurar controles multiplayer
+               setupMultiplayerControls();
+              
+               // Limpar a UI do tabuleiro
+               document.querySelectorAll('.chess-square').forEach(square => {
+                   // Limpar peças
+                   const piece = square.querySelector('.chess-piece');
+                   if (piece) piece.remove();
+                  
+                   // Limpar terreno
+                   square.classList.remove('high-ground-classic', 'water-classic', 'high-ground-fantasy', 'water-fantasy');
+                   const terrainIcon = square.querySelector('.terrain-icon');
+                   terrainIcon.innerHTML = '';
+                  
+                   // Limpar informações da peça
+                   const pieceInfo = square.querySelector('.piece-info');
+                   pieceInfo.innerHTML = '';
+                  
+                   // Resetar cores dos quadrados
+                   const rank = parseInt(square.dataset.rank);
+                   const file = files.indexOf(square.dataset.file);
+                   square.className = `chess-square ${(rank + file) % 2 === 0 ? 'bg-gray-200' : 'bg-gray-400'}`;
+               });
+              
+               // Limpar histórico
+               document.getElementById('move-history').innerHTML = '';
+              
+               // Configurar peças
+               setupPieces();
+               updateStats();
+              
+               // Gerar terreno aleatório inicial
+               generateRandomTerrain();
+           }
+          
+           function setupPieces() {
+               // Peças pretas
+               colocarPeça('a8', 'black', 'rook');
+               colocarPeça('b8', 'black', 'knight');
+               colocarPeça('c8', 'black', 'bishop');
+               colocarPeça('d8', 'black', 'queen');
+               colocarPeça('e8', 'black', 'king');
+               colocarPeça('f8', 'black', 'bishop');
+               colocarPeça('g8', 'black', 'knight');
+               colocarPeça('h8', 'black', 'rook');
+              
+               for (let file = 0; file < 8; file++) {
+                   colocarPeça(`${files[file]}7`, 'black', 'pawn');
+               }
+              
+               // Peças brancas
+               colocarPeça('a1', 'white', 'rook');
+               colocarPeça('b1', 'white', 'knight');
+               colocarPeça('c1', 'white', 'bishop');
+               colocarPeça('d1', 'white', 'queen');
+               colocarPeça('e1', 'white', 'king');
+               colocarPeça('f1', 'white', 'bishop');
+               colocarPeça('g1', 'white', 'knight');
+               colocarPeça('h1', 'white', 'rook');
+              
+               for (let file = 0; file < 8; file++) {
+                   colocarPeça(`${files[file]}2`, 'white', 'pawn');
+               }
+           }
+          
+           function colocarPeça(posição, cor, tipo) {
+               const square = document.querySelector(`.chess-square[data-file="${posição[0]}"][data-rank="${posição[1]}"]`);
+               if (!square) return;
+              
+               const row = parseInt(square.dataset.row);
+               const col = parseInt(square.dataset.col);
+              
+               // Atualizar estado do jogo
+               gameState.board[row][col] = { cor, tipo, hasMoved: false };
+              
+               // Atualizar UI
+               const piece = document.createElement('div');
+               piece.className = `chess-piece ${cor === 'white' ? 'text-white' : 'text-black'}`;
+              
+               // Definir o ícone apropriado
+               switch (tipo) {
+                   case 'king': piece.innerHTML = '<i class="fas fa-chess-king"></i>'; break;
+                   case 'queen': piece.innerHTML = '<i class="fas fa-chess-queen"></i>'; break;
+                   case 'rook': piece.innerHTML = '<i class="fas fa-chess-rook"></i>'; break;
+                   case 'bishop': piece.innerHTML = '<i class="fas fa-chess-bishop"></i>'; break;
+                   case 'knight': piece.innerHTML = '<i class="fas fa-chess-knight"></i>'; break;
+                   case 'pawn': piece.innerHTML = '<i class="fas fa-chess-pawn"></i>'; break;
+               }
+              
+               square.appendChild(piece);
+              
+               // Atualizar informações da peça
+               const pieceInfo = square.querySelector('.piece-info');
+               pieceInfo.textContent = `${cor.charAt(0).toUpperCase()}${tipo.charAt(0).toUpperCase()}`;
+               pieceInfo.style.color = cor === 'white' ? 'black' : 'white';
+           }
+          
+           function handleSquareClick(square) {
+               if (gameState.gameOver) return;
+               if (gameState.aiThinking) return; // Impedir cliques durante o pensamento da IA
+              
+               const row = parseInt(square.dataset.row);
+               const col = parseInt(square.dataset.col);
+              
+               // Lidar com edição de terreno
+               if (gameState.terrainMode) {
+                   editarTerreno(square, row, col);
+                   return;
+               }
+              
+               // No modo IA, só permitir que o jogador mova suas próprias peças
+               if (gameState.aiMode && gameState.currentPlayer === gameState.aiColor) {
+                   return;
+               }
+              
+               // Se uma peça já está selecionada
+               if (gameState.selectedPiece) {
+                   const selectedRow = gameState.selectedPiece.row;
+                   const selectedCol = gameState.selectedPiece.col;
+                  
+                   // Verificar se o quadrado clicado é um movimento possível
+                   const isPossibleMove = gameState.possibleMoves.some(move =>
+                       move.row === row && move.col === col
+                   );
+                  
+                   if (isPossibleMove) {
+                       // Mover a peça
+                       moverPeça(selectedRow, selectedCol, row, col);
+                      
+                       // Verificar promoção de peão
+                       const piece = gameState.board[row][col];
+                       if (piece.tipo === 'pawn' && (row === 0 || row === 7)) {
+                           mostrarModalPromoção(row, col, piece.cor);
+                       } else {
+                           // Alternar jogador
+                           gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
+                           updateStats();
+                          
+                           // Verificar xeque-mate ou empate
+                           verificarStatusJogo();
+                          
+                           // Se for modo IA e for a vez da IA, fazer a jogada da IA
+                           if (gameState.aiMode && !gameState.gameOver && gameState.currentPlayer === gameState.aiColor) {
+                               setTimeout(fazerJogadaIA, 500); // Pequeno atraso para melhor experiência do usuário
+                           }
+                       }
+                   }
+                  
+                   // Deselecionar a peça
+                   limparDestaques();
+                   gameState.selectedPiece = null;
+                   return;
+               }
+              
+               // Selecionar uma peça se for do jogador atual
+               const piece = gameState.board[row][col];
+               if (piece && piece.cor === gameState.currentPlayer) {
+                   gameState.selectedPiece = { row, col, piece };
+                   destacarQuadrado(square);
+                   mostrarMovimentosPossíveis(row, col, piece);
+               }
+           }
+          
+           function editarTerreno(square, row, col) {
+               // Limpar terreno atual
+               square.classList.remove('high-ground-classic', 'water-classic', 'high-ground-fantasy', 'water-fantasy');
+               const terrainIcon = square.querySelector('.terrain-icon');
+               terrainIcon.innerHTML = '';
+              
+               // Definir novo terreno
+               if (gameState.terrainMode === 'high-ground') {
+                   const terrainClass = gameState.currentTheme === 'fantasy' ? 'high-ground-fantasy' : 'high-ground-classic';
+                   square.classList.add(terrainClass);
+                   terrainIcon.innerHTML = '<i class="fas fa-mountain"></i>';
+                   gameState.terrain[row][col] = 'high-ground';
+               } else if (gameState.terrainMode === 'water') {
+                   const terrainClass = gameState.currentTheme === 'fantasy' ? 'water-fantasy' : 'water-classic';
+                   square.classList.add(terrainClass);
+                   terrainIcon.innerHTML = '<i class="fas fa-water"></i>';
+                   gameState.terrain[row][col] = 'water';
+               } else {
+                   gameState.terrain[row][col] = 'normal';
+               }
+           }
+          
+           function destacarQuadrado(square) {
+               square.classList.add('highlight');
+           }
+          
+           function limparDestaques() {
+               document.querySelectorAll('.highlight').forEach(square => {
+                   square.classList.remove('highlight');
+               });
+              
+               document.querySelectorAll('.possible-move').forEach(move => {
+                   move.remove();
+               });
+              
+               document.querySelectorAll('.attack-arrow').forEach(arrow => {
+                   arrow.remove();
+               });
+           }
+          
+           function mostrarMovimentosPossíveis(row, col, piece) {
+               gameState.possibleMoves = [];
+              
+               // Obter todos os movimentos possíveis para a peça
+               const moves = obterMovimentosPossíveis(row, col, piece);
+              
+               // Destacar movimentos possíveis
+               moves.forEach(move => {
+                   const targetSquare = document.querySelector(`.chess-square[data-row="${move.row}"][data-col="${move.col}"]`);
+                  
+                   // Criar indicador de movimento possível
+                   const moveIndicator = document.createElement('div');
+                   moveIndicator.className = 'possible-move';
+                  
+                   // Se for uma captura, mostrar uma flecha de ataque
+                   if (move.isCapture) {
+                       const arrow = document.createElement('div');
+                       arrow.className = 'attack-arrow';
+                      
+                       // Determinar direção da flecha
+                       const angle = Math.atan2(move.row - row, move.col - col) * 180 / Math.PI;
+                       arrow.style.transform = `rotate(${angle}deg)`;
+                      
+                       // Posicionar a flecha
+                       const centerX = (move.col - col) * 70;
+                       const centerY = (move.row - row) * 70;
+                       arrow.style.left = `${35 - centerX/2}px`;
+                       arrow.style.top = `${35 - centerY/2}px`;
+                      
+                       targetSquare.appendChild(arrow);
+                   } else {
+                       targetSquare.appendChild(moveIndicator);
+                   }
+               });
+              
+               gameState.possibleMoves = moves;
+           }
+          
+           function obterMovimentosPossíveis(row, col, piece) {
+               const moves = [];
+               const directions = [];
+              
+               // Obter padrões de movimento da peça
+               switch (piece.tipo) {
+                   case 'pawn':
+                       const direction = piece.cor === 'white' ? -1 : 1;
+                      
+                       // Movimento normal
+                       if (isValidSquare(row + direction, col) && !gameState.board[row + direction][col]) {
+                           moves.push({ row: row + direction, col, isCapture: false });
+                          
+                           // Movimento duplo da posição inicial ou se estiver no High Ground
+                           if ((!piece.hasMoved || gameState.terrain[row][col] === 'high-ground') && 
+                               isValidSquare(row + 2*direction, col) &&
+                               !gameState.board[row + 2*direction][col] && !gameState.board[row + direction][col]) {
+                               moves.push({ row: row + 2*direction, col, isCapture: false });
+                           }
+                       }
+                      
+                       // Capturas
+                       [-1, 1].forEach(dc => {
+                           const newRow = row + direction;
+                           const newCol = col + dc;
+                          
+                           if (isValidSquare(newRow, newCol)) {
+                               // Captura normal
+                               if (gameState.board[newRow][newCol] && gameState.board[newRow][newCol].cor !== piece.cor) {
+                                   moves.push({ row: newRow, col: newCol, isCapture: true });
+                               }
+                              
+                               // Captura à distância do high ground
+                               if (gameState.terrain[row][col] === 'high-ground' &&
+                                   gameState.terrain[newRow][newCol] === 'water' &&
+                                   gameState.board[newRow][newCol] &&
+                                   gameState.board[newRow][newCol].cor !== piece.cor) {
+                                   moves.push({ row: newRow, col: newCol, isCapture: true, isRanged: true });
+                               }
+                           }
+                       });
+                       break;
+                      
+                   case 'rook':
+                       directions.push([-1, 0], [1, 0], [0, -1], [0, 1]);
+                       break;
+                      
+                   case 'bishop':
+                       directions.push([-1, -1], [-1, 1], [1, -1], [1, 1]);
+                       break;
+                      
+                   case 'queen':
+                       directions.push([-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]);
+                       break;
+                      
+                   case 'king':
+                       // Movimento normal do rei (1 casa)
+                       for (let dr = -1; dr <= 1; dr++) {
+                           for (let dc = -1; dc <= 1; dc++) {
+                               if (dr === 0 && dc === 0) continue;
+                               const newRow = row + dr;
+                               const newCol = col + dc;
+                              
+                               if (isValidSquare(newRow, newCol) &&
+                                   (!gameState.board[newRow][newCol] || gameState.board[newRow][newCol].cor !== piece.cor)) {
+                                   // Verificar se mover para água é permitido
+                                   if (gameState.terrain[newRow][newCol] !== 'water' ||
+                                       piece.tipo === 'king' || piece.tipo === 'knight' || piece.tipo === 'pawn') {
+                                       moves.push({
+                                           row: newRow,
+                                           col: newCol,
+                                           isCapture: !!gameState.board[newRow][newCol]
+                                       });
+                                   }
+                               }
+                           }
+                       }
+                       
+                       // Movimento especial do rei no High Ground (2 casas)
+                       if (gameState.terrain[row][col] === 'high-ground') {
+                           for (let dr = -2; dr <= 2; dr += 2) {
+                               for (let dc = -2; dc <= 2; dc += 2) {
+                                   if (dr === 0 && dc === 0) continue;
+                                   const newRow = row + dr;
+                                   const newCol = col + dc;
+                                  
+                                   if (isValidSquare(newRow, newCol) &&
+                                       (!gameState.board[newRow][newCol] || gameState.board[newRow][newCol].cor !== piece.cor)) {
+                                       // Verificar se mover para água é permitido
+                                       if (gameState.terrain[newRow][newCol] !== 'water' ||
+                                           piece.tipo === 'king' || piece.tipo === 'knight' || piece.tipo === 'pawn') {
+                                           moves.push({
+                                               row: newRow,
+                                               col: newCol,
+                                               isCapture: !!gameState.board[newRow][newCol],
+                                               isHighGroundMove: true
+                                           });
+                                       }
+                                   }
+                               }
+                           }
+                       }
+                       break;
+                      
+                   case 'knight':
+                       const knightMoves = [
+                           [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+                           [1, -2], [1, 2], [2, -1], [2, 1]
+                       ];
+                      
+                       knightMoves.forEach(([dr, dc]) => {
+                           const newRow = row + dr;
+                           const newCol = col + dc;
+                          
+                           if (isValidSquare(newRow, newCol) &&
+                               (!gameState.board[newRow][newCol] || gameState.board[newRow][newCol].cor !== piece.cor)) {
+                               moves.push({
+                                   row: newRow,
+                                   col: newCol,
+                                   isCapture: !!gameState.board[newRow][newCol]
+                               });
+                           }
+                       });
+                       break;
+               }
+              
+               // Lidar com peças deslizantes (torre, bispo, rainha)
+               directions.forEach(([dr, dc]) => {
+                   let newRow = row + dr;
+                   let newCol = col + dc;
+                   let steps = 0;
+                  
+                   while (isValidSquare(newRow, newCol)) {
+                       steps++;
+                      
+                       // Verificar se o caminho está bloqueado por água (para não-cavalo/rei/peão)
+                       if (gameState.terrain[newRow][newCol] === 'water' &&
+                           piece.tipo !== 'knight' && piece.tipo !== 'king' && piece.tipo !== 'pawn') {
+                           // Permitir ataque sobre água mesmo sem poder atravessar
+                           if (gameState.board[newRow][newCol] && gameState.board[newRow][newCol].cor !== piece.cor) {
+                               moves.push({
+                                   row: newRow,
+                                   col: newCol,
+                                   isCapture: true,
+                                   isRanged: true
+                               });
+                           }
+                           break;
+                       }
+                      
+                       // Verificar se o quadrado está ocupado
+                       if (gameState.board[newRow][newCol]) {
+                           // Se for uma peça do oponente, adicionar como captura
+                           if (gameState.board[newRow][newCol].cor !== piece.cor) {
+                               // Verificar ataque à distância do high ground
+                               if (gameState.terrain[row][col] === 'high-ground' &&
+                                   gameState.terrain[newRow][newCol] === 'water' &&
+                                   (piece.tipo === 'queen' || piece.tipo === 'rook' || piece.tipo === 'bishop')) {
+                                   moves.push({
+                                       row: newRow,
+                                       col: newCol,
+                                       isCapture: true,
+                                       isRanged: true
+                                   });
+                               } else {
+                                   moves.push({
+                                       row: newRow,
+                                       col: newCol,
+                                       isCapture: true
+                                   });
+                               }
+                           }
+                           break;
+                       }
+                      
+                       // Adicionar movimento normal
+                       moves.push({ row: newRow, col: newCol, isCapture: false });
+                      
+                       // Aplicar bônus de alcance do high ground
+                       if (gameState.terrain[row][col] === 'high-ground' && steps >= 1) {
+                           // Para peças de longo alcance, estender o alcance em 1
+                           if (piece.tipo === 'queen' || piece.tipo === 'rook' || piece.tipo === 'bishop') {
+                               newRow += dr;
+                               newCol += dc;
+                               continue;
+                           }
+                       }
+                      
+                       newRow += dr;
+                       newCol += dc;
+                   }
+               });
+              
+               return moves;
+           }
+          
+           function isValidSquare(row, col) {
+               return row >= 0 && row < 8 && col >= 0 && col < 8;
+           }
+          
+           function moverPeça(fromRow, fromCol, toRow, toCol) {
+               const piece = gameState.board[fromRow][fromCol];
+               const fromFile = files[fromCol];
+               const fromRank = 8 - fromRow;
+               const toFile = files[toCol];
+               const toRank = 8 - toRow;
+              
+               // Verificar se é uma captura
+               if (gameState.board[toRow][toCol]) {
+                   // Atualizar contagem de peças
+                   if (gameState.board[toRow][toCol].cor === 'white') {
+                       gameState.whitePieces--;
+                   } else {
+                       gameState.blackPieces--;
+                   }
+               }
+              
+               // Mover a peça no estado do jogo
+               gameState.board[toRow][toCol] = {...piece, hasMoved: true};
+               gameState.board[fromRow][fromCol] = null;
+              
+               // Mover a peça na UI
+               const fromSquare = document.querySelector(`.chess-square[data-row="${fromRow}"][data-col="${fromCol}"]`);
+               const toSquare = document.querySelector(`.chess-square[data-row="${toRow}"][data-col="${toCol}"]`);
+              
+               // Remover qualquer peça existente no quadrado de destino
+               const existingPiece = toSquare.querySelector('.chess-piece');
+               if (existingPiece) existingPiece.remove();
+              
+               // Mover a peça
+               const pieceElement = fromSquare.querySelector('.chess-piece');
+               if (pieceElement) {
+                   toSquare.appendChild(pieceElement);
+                  
+                   // Atualizar informações da peça
+                   const fromPieceInfo = fromSquare.querySelector('.piece-info');
+                   const toPieceInfo = toSquare.querySelector('.piece-info');
+                   toPieceInfo.innerHTML = fromPieceInfo.innerHTML;
+                   toPieceInfo.style.color = fromPieceInfo.style.color;
+                   fromPieceInfo.innerHTML = '';
+               }
+              
+               // Adicionar ao histórico
+               const moveNotation = `${piece.tipo === 'pawn' ? '' : piece.tipo.charAt(0).toUpperCase()}${fromFile}${fromRank}${gameState.board[toRow][toCol] ? 'x' : '-'}${toFile}${toRank}`;
+               addToHistory(moveNotation);
+           }
+          
+           function addToHistory(moveNotation) {
+               gameState.moveHistory.push({
+                   player: gameState.currentPlayer,
+                   notation: moveNotation
+               });
+              
+               const historyElement = document.getElementById('move-history');
+               const moveElement = document.createElement('div');
+               moveElement.className = `py-1 px-2 ${gameState.moveHistory.length % 2 === 1 ? 'bg-gray-100' : ''}`;
+               moveElement.textContent = `${gameState.moveHistory.length}. ${moveNotation}`;
+               historyElement.appendChild(moveElement);
+               historyElement.scrollTop = historyElement.scrollHeight;
+           }
+          
+           function mostrarModalPromoção(row, col, cor) {
+               const modal = document.getElementById('promotion-modal');
+               modal.style.display = 'flex';
+              
+               // Armazenar informações de promoção
+               gameState.promotion = { row, col, cor };
+               
+               // Se for modo IA e for a vez da IA, promover automaticamente para rainha
+               if (gameState.aiMode && cor === gameState.aiColor) {
+                   // IA sempre escolhe rainha
+                   gameState.board[row][col].tipo = 'queen';
+                   
+                   // Atualizar a UI
+                   const square = document.querySelector(`.chess-square[data-row="${row}"][data-col="${col}"]`);
+                   const piece = square.querySelector('.chess-piece');
+                   piece.innerHTML = '<i class="fas fa-chess-queen"></i>';
+                   
+                   // Atualizar informações da peça
+                   const pieceInfo = square.querySelector('.piece-info');
+                   pieceInfo.textContent = `${cor.charAt(0).toUpperCase()}Q`;
+                   
+                   // Fechar o modal
+                   modal.style.display = 'none';
+                   
+                   // Alternar jogador
+                   gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
+                   updateStats();
+                   
+                   // Verificar xeque-mate ou empate
+                   verificarStatusJogo();
+               }
+           }
+          
+           function handlePromotionChoice(e) {
+               const pieceType = e.currentTarget.dataset.piece;
+               const { row, col, cor } = gameState.promotion;
+              
+               // Atualizar a peça
+               gameState.board[row][col].tipo = pieceType;
+              
+               // Atualizar a UI
+               const square = document.querySelector(`.chess-square[data-row="${row}"][data-col="${col}"]`);
+               const piece = square.querySelector('.chess-piece');
+               piece.innerHTML = '';
+              
+               switch (pieceType) {
+                   case 'queen': piece.innerHTML = '<i class="fas fa-chess-queen"></i>'; break;
+                   case 'rook': piece.innerHTML = '<i class="fas fa-chess-rook"></i>'; break;
+                   case 'bishop': piece.innerHTML = '<i class="fas fa-chess-bishop"></i>'; break;
+                   case 'knight': piece.innerHTML = '<i class="fas fa-chess-knight"></i>'; break;
+               }
+              
+               // Atualizar informações da peça
+               const pieceInfo = square.querySelector('.piece-info');
+               pieceInfo.textContent = `${cor.charAt(0).toUpperCase()}${pieceType.charAt(0).toUpperCase()}`;
+              
+               // Ocultar modal
+               document.getElementById('promotion-modal').style.display = 'none';
+               
+               // Alternar jogador
+               gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
+               updateStats();
+               
+               // Verificar xeque-mate ou empate
+               verificarStatusJogo();
+               
+               // Se for modo IA e for a vez da IA, fazer a jogada da IA
+               if (gameState.aiMode && !gameState.gameOver && gameState.currentPlayer === gameState.aiColor) {
+                   setTimeout(fazerJogadaIA, 500);
+               }
+           }
+          
+           function verificarStatusJogo() {
+               // Verificar se os reis ainda estão no tabuleiro
+               let whiteKingExists = false;
+               let blackKingExists = false;
+              
+               for (let row = 0; row < 8; row++) {
+                   for (let col = 0; col < 8; col++) {
+                       const piece = gameState.board[row][col];
+                       if (piece && piece.tipo === 'king') {
+                           if (piece.cor === 'white') whiteKingExists = true;
+                           else blackKingExists = true;
+                       }
+                   }
+               }
+              
+               if (!whiteKingExists || !blackKingExists) {
+                   gameState.gameOver = true;
+                   mostrarFimDeJogo(!whiteKingExists ? 'black' : 'white');
+               }
+           }
+          
+           function mostrarFimDeJogo(vencedor) {
+               const modal = document.getElementById('game-over-modal');
+               const title = document.getElementById('game-over-title');
+               const message = document.getElementById('game-over-message');
+              
+               title.textContent = 'Fim de Jogo';
+               message.textContent = `${vencedor === 'white' ? 'Branco' : 'Preto'} venceu!`;
+              
+               modal.style.display = 'flex';
+           }
+          
+           function resetGame() {
+               document.getElementById('game-over-modal').style.display = 'none';
+               initializeGame();
+           }
+           
+           // Função para alternar o modo IA
+           function toggleAIMode() {
+               gameState.aiMode = !gameState.aiMode;
+               
+               if (gameState.aiMode) {
+                   showToast('Modo IA ativado! Você joga com as peças brancas.');
+                   document.getElementById('ai-btn').classList.add('bg-green-600');
+                   document.getElementById('ai-btn').classList.remove('bg-purple-600');
+                   document.getElementById('ai-btn').innerHTML = '<i class="fas fa-robot mr-2"></i>IA Ativada';
+                   
+                   // Resetar o jogo para começar uma nova partida contra a IA
+                   resetGame();
+                   
+                   // Definir a cor da IA como preto
+                   gameState.aiColor = 'black';
+                   
+                   // Se for a vez da IA, fazer a jogada
+                   if (gameState.currentPlayer === gameState.aiColor) {
+                       setTimeout(fazerJogadaIA, 500);
+                   }
+               } else {
+                   showToast('Modo IA desativado! Jogo para dois jogadores.');
+                   document.getElementById('ai-btn').classList.add('bg-purple-600');
+                   document.getElementById('ai-btn').classList.remove('bg-green-600');
+                   document.getElementById('ai-btn').innerHTML = '<i class="fas fa-robot mr-2"></i>Jogar contra IA';
+                   
+                   // Resetar o jogo para começar uma nova partida
+                   resetGame();
+               }
+           }
+           
+           // Função para fazer a jogada da IA
+           function fazerJogadaIA() {
+               if (gameState.gameOver || !gameState.aiMode || gameState.currentPlayer !== gameState.aiColor) {
+                   return;
+               }
+               
+               gameState.aiThinking = true;
+               showToast('IA está pensando...');
+               
+               // Pequeno atraso para dar a impressão de que a IA está "pensando"
+               setTimeout(() => {
+                   // Encontrar todas as peças da IA
+                   const pecasIA = [];
+                   for (let row = 0; row < 8; row++) {
+                       for (let col = 0; col < 8; col++) {
+                           const piece = gameState.board[row][col];
+                           if (piece && piece.cor === gameState.aiColor) {
+                               pecasIA.push({ row, col, piece });
+                           }
+                       }
+                   }
+                   
+                   // Coletar todos os movimentos possíveis para todas as peças da IA
+                   const todosMovimentos = [];
+                   
+                   pecasIA.forEach(({ row, col, piece }) => {
+                       const movimentos = obterMovimentosPossíveis(row, col, piece);
+                       movimentos.forEach(move => {
+                           todosMovimentos.push({
+                               fromRow: row,
+                               fromCol: col,
+                               toRow: move.row,
+                               toCol: move.col,
+                               piece: piece,
+                               isCapture: move.isCapture,
+                               score: avaliarMovimento(row, col, move.row, move.col, piece, move.isCapture)
+                           });
+                       });
+                   });
+                   
+                   // Ordenar movimentos por pontuação (do maior para o menor)
+                   todosMovimentos.sort((a, b) => b.score - a.score);
+                   
+                   // Escolher um dos melhores movimentos (com alguma aleatoriedade para não ser previsível)
+                   const topMovimentos = todosMovimentos.slice(0, Math.min(3, todosMovimentos.length));
+                   const movimentoEscolhido = topMovimentos[Math.floor(Math.random() * topMovimentos.length)];
+                   
+                   if (movimentoEscolhido) {
+                       // Executar o movimento
+                       moverPeça(movimentoEscolhido.fromRow, movimentoEscolhido.fromCol, movimentoEscolhido.toRow, movimentoEscolhido.toCol);
+                       
+                       // Verificar promoção de peão
+                       const pecaMovida = gameState.board[movimentoEscolhido.toRow][movimentoEscolhido.toCol];
+                       if (pecaMovida.tipo === 'pawn' && (movimentoEscolhido.toRow === 0 || movimentoEscolhido.toRow === 7)) {
+                           // IA sempre escolhe rainha para promoção
+                           gameState.board[movimentoEscolhido.toRow][movimentoEscolhido.toCol].tipo = 'queen';
+                           
+                           // Atualizar a UI
+                           const square = document.querySelector(`.chess-square[data-row="${movimentoEscolhido.toRow}"][data-col="${movimentoEscolhido.toCol}"]`);
+                           const piece = square.querySelector('.chess-piece');
+                           piece.innerHTML = '<i class="fas fa-chess-queen"></i>';
+                           
+                           // Atualizar informações da peça
+                           const pieceInfo = square.querySelector('.piece-info');
+                           pieceInfo.textContent = `${gameState.aiColor.charAt(0).toUpperCase()}Q`;
+                       }
+                       
+                       // Alternar jogador
+                       gameState.currentPlayer = 'white';
+                       updateStats();
+                       
+                       // Verificar xeque-mate ou empate
+                       verificarStatusJogo();
+                   }
+                   
+                   gameState.aiThinking = false;
+               }, 1000);
+           }
+           
+           // Função para avaliar um movimento da IA
+           function avaliarMovimento(fromRow, fromCol, toRow, toCol, piece, isCapture) {
+               let score = 0;
+               
+               // Valor base das peças
+               const pieceValues = {
+                   'pawn': 10,
+                   'knight': 30,
+                   'bishop': 30,
+                   'rook': 50,
+                   'queen': 90,
+                   'king': 900
+               };
+               
+               // Bônus para capturas (baseado no valor da peça capturada)
+               if (isCapture) {
+                   const capturedPiece = gameState.board[toRow][toCol];
+                   score += pieceValues[capturedPiece.tipo] * 2;
+               }
+               
+               // Bônus para movimentos para high ground
+               if (gameState.terrain[toRow][toCol] === 'high-ground') {
+                   score += 15;
+               }
+               
+               // Evitar água para peças que não podem atravessá-la
+               if (gameState.terrain[toRow][toCol] === 'water' && 
+                   piece.tipo !== 'knight' && piece.tipo !== 'king' && piece.tipo !== 'pawn') {
+                   score -= 30;
+               }
+               
+               // Bônus para peões avançando em direção à promoção
+               if (piece.tipo === 'pawn') {
+                   const direction = piece.cor === 'white' ? -1 : 1;
+                   const distanceToPromotion = piece.cor === 'white' ? fromRow : 7 - fromRow;
+                   const newDistanceToPromotion = piece.cor === 'white' ? toRow : 7 - toRow;
+                   
+                   if (newDistanceToPromotion < distanceToPromotion) {
+                       score += (7 - newDistanceToPromotion) * 2;
+                   }
+               }
+               
+               // Bônus para controle do centro do tabuleiro
+               if ((toRow >= 2 && toRow <= 5) && (toCol >= 2 && toCol <= 5)) {
+                   score += 5;
+                   if ((toRow >= 3 && toRow <= 4) && (toCol >= 3 && toCol <= 4)) {
+                       score += 5; // Bônus extra para o centro absoluto
+                   }
+               }
+               
+               // Adicionar alguma aleatoriedade para não ser previsível
+               score += Math.random() * 5;
+               
+               return score;
+           }
+           
+           // Função para mostrar uma mensagem temporária
+           function showToast(message) {
+               const toast = document.createElement('div');
+               toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+               toast.textContent = message;
+               document.body.appendChild(toast);
+               
+               setTimeout(() => {
+                   toast.classList.add('opacity-0');
+                   toast.style.transition = 'opacity 0.5s';
+                   setTimeout(() => toast.remove(), 500);
+               }, 2000);
+           }
+          
+           function updateStats() {
+               document.getElementById('black-stats').textContent = `Preto: ${gameState.blackPieces} peças`;
+               document.getElementById('white-stats').textContent = `Branco: ${gameState.whitePieces} peças`;
+               document.getElementById('current-player').textContent = `Turno: ${gameState.currentPlayer === 'white' ? 'Branco' : 'Preto'}`;
+           }
+          
+           function generateRandomTerrain() {
+               // Limpar terreno existente
+               gameState.terrain = Array(8).fill().map(() => Array(8).fill('normal'));
+              
+               document.querySelectorAll('.chess-square').forEach(square => {
+                   square.classList.remove('high-ground-classic', 'water-classic', 'high-ground-fantasy', 'water-fantasy');
+                   const terrainIcon = square.querySelector('.terrain-icon');
+                   terrainIcon.innerHTML = '';
+               });
+              
+               // Criar lista de casas vazias
+               const emptySquares = [];
+               for (let row = 0; row < 8; row++) {
+                   for (let col = 0; col < 8; col++) {
+                       if (!gameState.board[row][col]) {
+                           emptySquares.push({row, col});
+                       }
+                   }
+               }
+              
+               // Embaralhar casas vazias
+               emptySquares.sort(() => Math.random() - 0.5);
+              
+               // Garantir que sempre serão criadas exatamente 6 casas especiais
+               const specialSquaresCount = Math.min(6, emptySquares.length);
+               const waterCount = Math.floor(Math.random() * (specialSquaresCount - 1)) + 1; // 1-5 águas
+               const highGroundCount = specialSquaresCount - waterCount; // restante high ground
+               
+               // Gerar high grounds
+               for (let i = 0; i < highGroundCount && i < emptySquares.length; i++) {
+                   const {row, col} = emptySquares[i];
+                   gameState.terrain[row][col] = 'high-ground';
+                   const square = document.querySelector(`.chess-square[data-row="${row}"][data-col="${col}"]`);
+                   const terrainClass = gameState.currentTheme === 'fantasy' ? 'high-ground-fantasy' : 'high-ground-classic';
+                   square.classList.add(terrainClass);
+                   square.querySelector('.terrain-icon').innerHTML = '<i class="fas fa-mountain"></i>';
+               }
+               
+               // Gerar águas
+               for (let i = highGroundCount; i < specialSquaresCount && i < emptySquares.length; i++) {
+                   const {row, col} = emptySquares[i];
+                   gameState.terrain[row][col] = 'water';
+                   const square = document.querySelector(`.chess-square[data-row="${row}"][data-col="${col}"]`);
+                   const terrainClass = gameState.currentTheme === 'fantasy' ? 'water-fantasy' : 'water-classic';
+                   square.classList.add(terrainClass);
+                   square.querySelector('.terrain-icon').innerHTML = '<i class="fas fa-water"></i>';
+               }
+              
+               showToast('Terreno aleatório gerado!');
+           }
+          
+           function changeTheme(theme) {
+               gameState.currentTheme = theme;
+               document.body.className = `theme-${theme} min-h-screen flex flex-col`;
+              
+               // Atualizar classes de terreno para o novo tema
+               document.querySelectorAll('.chess-square').forEach(square => {
+                   const row = parseInt(square.dataset.row);
+                   const col = parseInt(square.dataset.col);
+                  
+                   if (gameState.terrain[row][col] === 'high-ground') {
+                       square.classList.remove('high-ground-classic', 'high-ground-fantasy');
+                       square.classList.add(theme === 'fantasy' ? 'high-ground-fantasy' : 'high-ground-classic');
+                   } else if (gameState.terrain[row][col] === 'water') {
+                       square.classList.remove('water-classic', 'water-fantasy');
+                       square.classList.add(theme === 'fantasy' ? 'water-fantasy' : 'water-classic');
+                   }
+               });
+              
+               // Atualizar classes dos botões
+               document.getElementById('high-ground-btn').className = `terrain-btn ${theme === 'dark' ? 'bg-amber-900' : theme === 'fantasy' ? 'bg-purple-800' : 'bg-amber-800'} text-white`;
+               document.getElementById('water-btn').className = `terrain-btn ${theme === 'dark' ? 'bg-blue-600' : theme === 'fantasy' ? 'bg-indigo-600' : 'bg-blue-500'} text-white`;
+               document.getElementById('random-terrain-btn').className = `terrain-btn ${theme === 'dark' ? 'bg-green-700' : theme === 'fantasy' ? 'bg-teal-600' : 'bg-green-600'} text-white`;
+           }
+          
+           function showToast(message) {
+               const toast = document.createElement('div');
+               toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded shadow-lg';
+               toast.textContent = message;
+               document.body.appendChild(toast);
+              
+               setTimeout(() => {
+                   toast.remove();
+               }, 3000);
+           }
+       });
+   </script>
+</body>
+</html>
